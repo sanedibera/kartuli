@@ -9,20 +9,24 @@ import { WORDS } from '@/lib/words'
 
 const MAX_REVIEWS = 30
 
-/** Neu zeichnen, wenn die Seite wieder sichtbar wird und alle 30 s – Karten werden mit der Zeit fällig. */
-function useTick() {
-  const [, setTick] = useState(0)
-  useFocusEffect(useCallback(() => setTick(t => t + 1), []))
+/**
+ * Aktuelle Zeit, erneuert beim Zurückkehren auf die Seite und alle 30 s – Karten werden mit der Zeit fällig.
+ * Die Zeit muss als Wert in die Berechnung fließen, sonst merkt sich der React Compiler das alte Ergebnis.
+ */
+function useNow() {
+  const [now, setNow] = useState(() => new Date())
+  useFocusEffect(useCallback(() => setNow(new Date()), []))
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30_000)
+    const id = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(id)
   }, [])
+  return now
 }
 
 export default function Home() {
   const st = useAppState()
-  useTick()
-  const due = dueKeys(st).length
+  const now = useNow()
+  const due = dueKeys(st, now).length
   const group = nextGroup(st)
   const learned = learnedLetters(st)
   const glyphs = new Set(learned.map(l => l.glyph))
