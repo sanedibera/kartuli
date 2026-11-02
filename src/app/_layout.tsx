@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router'
+import { DarkTheme, DefaultTheme, ThemeProvider, usePathname } from 'expo-router'
 import { NativeTabs } from 'expo-router/native-tabs'
 import * as SplashScreen from 'expo-splash-screen'
 import { useEffect, useState } from 'react'
@@ -12,6 +12,9 @@ SplashScreen.preventAutoHideAsync()
 export default function RootLayout() {
   const scheme = useColorScheme()
   const [ready, setReady] = useState(false)
+  // In Lern- und Abfragebildschirmen stört die Tab-Leiste – nur auf den beiden Hauptseiten zeigen
+  const pathname = usePathname()
+  const tabsHidden = pathname !== '/' && pathname !== '/progress'
 
   useEffect(() => {
     loadState().finally(() => {
@@ -24,7 +27,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <NativeTabs minimizeBehavior="onScrollDown">
+      <NativeTabs minimizeBehavior="onScrollDown" hidden={tabsHidden}>
         <NativeTabs.Trigger name="(learn)">
           <NativeTabs.Trigger.Label>Lernen</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf={{ default: 'book', selected: 'book.fill' }} />

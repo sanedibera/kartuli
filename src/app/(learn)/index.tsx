@@ -1,4 +1,5 @@
-import { router } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 
 import { C, Row, s, Section } from '@/components/ui'
@@ -8,8 +9,19 @@ import { WORDS } from '@/lib/words'
 
 const MAX_REVIEWS = 30
 
+/** Neu zeichnen, wenn die Seite wieder sichtbar wird und alle 30 s – Karten werden mit der Zeit fällig. */
+function useTick() {
+  const [, setTick] = useState(0)
+  useFocusEffect(useCallback(() => setTick(t => t + 1), []))
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000)
+    return () => clearInterval(id)
+  }, [])
+}
+
 export default function Home() {
   const st = useAppState()
+  useTick()
   const due = dueKeys(st).length
   const group = nextGroup(st)
   const learned = learnedLetters(st)
