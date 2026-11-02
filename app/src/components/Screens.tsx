@@ -246,17 +246,23 @@ export function Progress() {
 
   return (
     <div className="stack">
+      <div className="mastery-summary">
+        {(Object.keys(MASTERY_LABEL) as Mastery[]).map(m => (
+          <div key={m} className={`glass mastery-chip m-${m}`}>
+            <strong>{LETTERS.filter(l => mastery(s, l.id) === m).length}</strong>
+            <span className="dot">{MASTERY_LABEL[m]}</span>
+          </div>
+        ))}
+      </div>
+
       <h3 className="section-title">Alle Buchstaben</h3>
-      <div className="card">
-        <div className="legend small">
-          {(Object.keys(MASTERY_LABEL) as Mastery[]).map(m => <span key={m} className={`dot m-${m}`}>{MASTERY_LABEL[m]}</span>)}
-        </div>
+      <div>
         <div className="letter-grid">
           {LETTERS.map(l => {
             const st = s.stats[l.id]
             const m = mastery(s, l.id)
             return (
-              <div key={l.id} className={`letter-cell m-${m}`} title={l.sound}>
+              <div key={l.id} className={`glass letter-cell m-${m}`} title={l.sound}>
                 <span className="glyph">{l.glyph}</span>
                 <span className="small">{l.translit}</span>
                 <span className="tiny">{st?.seen ? `${Math.round((st.correct / st.seen) * 100)}% · ${(st.rtAvg / 1000).toFixed(1)}s` : '–'}</span>
@@ -264,7 +270,7 @@ export function Progress() {
             )
           })}
         </div>
-        <p className="tiny muted">Prozent = Trefferquote, Sekunden = durchschnittliche Reaktionszeit. Ziel: unter 1 s.</p>
+        <p className="tiny muted footnote">Prozent = Trefferquote, Sekunden = durchschnittliche Reaktionszeit. Ziel: unter 1 s.</p>
       </div>
 
       <h3 className="section-title">Häufigste Verwechslungen</h3>
@@ -284,7 +290,7 @@ export function Progress() {
         <p className="tiny muted">Diese Paare tauchen in Abfragen bevorzugt als Antwortmöglichkeiten auf.</p>
       </div>
 
-      <button className="list-button danger" onClick={() => { if (confirm('Wirklich den gesamten Fortschritt löschen?')) resetAll() }}>
+      <button className="glass list-button danger" onClick={() => { if (confirm('Wirklich den gesamten Fortschritt löschen?')) resetAll() }}>
         Fortschritt zurücksetzen
       </button>
     </div>

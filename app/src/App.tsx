@@ -21,8 +21,10 @@ export default function App() {
     <div className="app">
       <header className={`navbar ${isRoot ? 'large' : ''}`}>
         {!isRoot && (
-          <button className="nav-back" onClick={() => go('home')} aria-label="Zurück">
-            <span className="nav-chevron">‹</span> Lernen
+          <button className="glass nav-back" onClick={() => go('home')} aria-label="Zurück">
+            <svg viewBox="0 0 12 20" width="11" height="18" aria-hidden="true">
+              <path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         )}
         <h1>{TITLES[screen]}</h1>
@@ -38,7 +40,8 @@ export default function App() {
       </main>
 
       {isRoot && (
-        <nav className="tabbar">
+        <nav className="glass tabbar">
+          <span className={`tab-indicator ${screen === 'progress' ? 'second' : ''}`} aria-hidden="true" />
           <button className={screen === 'home' ? 'active' : ''} onClick={() => go('home')}>
             <span className="tab-icon">ა</span>Lernen
           </button>
