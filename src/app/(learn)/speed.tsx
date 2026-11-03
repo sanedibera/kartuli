@@ -10,6 +10,7 @@ import { distractors, shuffle } from '@/lib/quiz'
 import { getState, learnedLetters, recordAnswer, setSpeedBest } from '@/lib/store'
 
 const SECONDS = 60
+const PENALTY = 3
 const GREEN = 'rgba(52,199,89,0.85)'
 const RED = 'rgba(255,59,48,0.85)'
 
@@ -31,42 +32,57 @@ export default function Speed() {
   const [prevBest, setPrevBest] = useState(() => getState().speedBest)
   const [target, setTarget] = useState(() => randomLetter(pool))
   const [options, setOptions] = useState(() => shuffle([target, ...distractors(getState(), target, pool)]))
-  const [flash, setFlash] = useState<{ id: string; correct: boolean } | null>(null)
+  const [feedback, setFeedback] = useState<{ chosenId: string; correct: boolean } | null>(null)
+  const [penaltyShown, setPenaltyShown] = useState(false)
   const shownAt = useRef(0)
-  const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const endAt = useRef(0)
+  const advanceTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const penaltyTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
+  // Restzeit aus einem festen Endzeitpunkt berechnen, damit Strafsekunden sofort wirken
   useEffect(() => {
     if (phase !== 'run') return
-    const t = setInterval(() => setLeft(l => l - 1), 1000)
+    const t = setInterval(() => setLeft(Math.max(0, Math.ceil((endAt.current - Date.now()) / 1000))), 100)
     return () => clearInterval(t)
   }, [phase])
 
   useEffect(() => {
     if (phase === 'run' && left <= 0) {
+      clearTimeout(advanceTimer.current)
+      setFeedback(null)
       setSpeedBest(score)
       setPhase('done')
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     }
   }, [left, phase, score])
 
-  useEffect(() => () => clearTimeout(flashTimer.current), [])
+  useEffect(
+    () => () => {
+      clearTimeout(advanceTimer.current)
+      clearTimeout(penaltyTimer.current)
+    },
+    [],
+  )
 
   function nextTarget(prev?: Letter) {
     const n = randomLetter(pool, prev)
     setTarget(n)
     setOptions(shuffle([n, ...distractors(getState(), n, pool)]))
+    setFeedback(null)
     shownAt.current = performance.now()
   }
 
   function start() {
     setPrevBest(getState().speedBest)
     setScore(0)
+    endAt.current = Date.now() + SECONDS * 1000
     setLeft(SECONDS)
     nextTarget()
     setPhase('run')
   }
 
   function pick(o: Letter) {
+    if (feedback) return // während der Rückmeldung keine weiteren Antworten
     const correct = o.id === target.id
     recordAnswer({
       letterId: target.id,
@@ -78,12 +94,21 @@ export default function Speed() {
       chosenGlyph: o.glyph,
       schedule: false,
     })
-    Haptics.impactAsync(correct ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Heavy)
-    if (correct) setScore(sc => sc + 1)
-    setFlash({ id: o.id, correct })
-    clearTimeout(flashTimer.current)
-    flashTimer.current = setTimeout(() => setFlash(null), 180)
-    nextTarget(target)
+    setFeedback({ chosenId: o.id, correct })
+    if (correct) {
+      setScore(sc => sc + 1)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    } else {
+      // Fehler kosten Zeit: Strafsekunden abziehen und kurz anzeigen
+      endAt.current -= PENALTY * 1000
+      setLeft(Math.max(0, Math.ceil((endAt.current - Date.now()) / 1000)))
+      setPenaltyShown(true)
+      clearTimeout(penaltyTimer.current)
+      penaltyTimer.current = setTimeout(() => setPenaltyShown(false), 900)
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+    }
+    // Falsch: länger stehen lassen, damit man die richtige Lösung sieht
+    advanceTimer.current = setTimeout(() => nextTarget(target), correct ? 350 : 900)
   }
 
   if (phase !== 'run') {
@@ -95,7 +120,7 @@ export default function Speed() {
             <>
               <Text style={styles.title}>{SECONDS} Sekunden</Text>
               <Text style={styles.body}>
-                So viele Buchstaben wie möglich. Fehler kosten Zeit, nicht Punkte – flüssiges Lesen heißt: schnell und richtig.
+                So viele Buchstaben wie möglich. Jeder Fehler kostet {PENALTY} Sekunden – flüssiges Lesen heißt: schnell und richtig.
               </Text>
               <Text style={styles.muted}>Rekord: {prevBest}</Text>
             </>
@@ -127,7 +152,10 @@ export default function Speed() {
         <View style={[styles.timerFill, { width: `${(left / SECONDS) * 100}%` }, left <= 10 && { backgroundColor: C.orange }]} />
       </View>
       <View style={styles.statusRow}>
-        <Text style={styles.status}>{left} s</Text>
+        <View style={styles.timeRow}>
+          <Text style={[styles.status, left <= 10 && { color: C.orange }]}>{left} s</Text>
+          {penaltyShown && <Text style={styles.penalty}>−{PENALTY} s</Text>}
+        </View>
         <Text style={styles.status}>✓ {score}</Text>
       </View>
       <View style={[s.card, styles.prompt]}>
@@ -135,9 +163,9 @@ export default function Speed() {
       </View>
       <View style={styles.options}>
         {options.map(o => {
-          const tint = flash?.id === o.id ? (flash.correct ? GREEN : RED) : undefined
+          const tint = !feedback ? undefined : o.id === target.id ? GREEN : o.id === feedback.chosenId ? RED : undefined
           return (
-            <GlassButton key={o.id} onPress={() => pick(o)} tint={tint} style={styles.option} glassStyle={styles.optionGlass}>
+            <GlassButton key={`${target.id}-${o.id}`} onPress={() => pick(o)} tint={tint} style={styles.option} glassStyle={styles.optionGlass}>
               <Text style={[styles.optionText, tint && { color: 'white' }]}>{o.translit}</Text>
             </GlassButton>
           )
@@ -158,6 +186,8 @@ const styles = StyleSheet.create({
   timer: { height: 5, borderRadius: 3, backgroundColor: C.fill, overflow: 'hidden', marginTop: 8 },
   timerFill: { height: '100%', backgroundColor: C.blue, borderRadius: 3 },
   statusRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  timeRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  penalty: { fontSize: 17, fontWeight: '700', color: C.red },
   status: { fontSize: 17, fontWeight: '600', color: C.label, fontVariant: ['tabular-nums'] },
   prompt: { alignItems: 'center', paddingVertical: 24 },
   glyph: { fontSize: 110, lineHeight: 150, color: C.label },
