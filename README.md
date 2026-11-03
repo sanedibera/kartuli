@@ -26,8 +26,10 @@ iCloud versieht dort gebaute Frameworks mit Zusatzattributen, und Xcode bricht d
 | `src/lib/letters.ts`, `words.ts` | Die 33 Buchstaben mit Eselsbrücken, Lesewörter |
 | `src/lib/store.ts` | Spaced Repetition (FSRS), Statistik, Speicherung in AsyncStorage |
 | `src/lib/quiz.ts` | Fragen und Ablenker (persönliche Verwechslungen zuerst) |
+| `src/components/trace-canvas.tsx` | Nachzeichnen mit dem Finger (react-native-svg) |
 
 ## Stand
 
-- Fertig: Tab-Leiste, Startseite, Fortschritt
-- Nächste Stufe: Buchstaben lernen, Wiederholen, Wörter lesen, Schnellrunde, Nachzeichnen
+- Buchstaben lernen (mit Nachzeichnen und eigener Eselsbrücke), Wiederholen nach FSRS
+- Wörter lesen, Schnellrunde (60 Sekunden), Fortschritt mit Verwechslungen
+- Noch offen: Aussprache als Audio, eigener Build fürs iPhone

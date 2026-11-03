@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 
 import { GlassButton, PrimaryButton } from '@/components/buttons'
 import { Quiz } from '@/components/quiz'
+import { TraceCanvas } from '@/components/trace-canvas'
 import { C, s } from '@/components/ui'
 import { LETTERS, transliterate } from '@/lib/letters'
 import { shuffle } from '@/lib/quiz'
@@ -24,6 +25,7 @@ export default function Learn() {
   const [step, setStep] = useState(0)
   const [phase, setPhase] = useState<'intro' | 'quiz' | 'done'>('intro')
   const [result, setResult] = useState({ correct: 0, total: 0 })
+  const [drawing, setDrawing] = useState(false)
 
   if (group === undefined) {
     return (
@@ -86,7 +88,7 @@ export default function Learn() {
   const l = letters[step]
   const example = WORDS.find(w => w.ka.includes(l.glyph))
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.content} contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="interactive">
+    <ScrollView style={s.screen} contentContainerStyle={s.content} contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="interactive" scrollEnabled={!drawing}>
       <Stack.Screen options={{ title: `Gruppe ${group} · ${step + 1} von ${letters.length}` }} />
 
       <View style={[s.card, styles.hero]}>
@@ -101,6 +103,10 @@ export default function Learn() {
       <View style={[s.card, styles.pad]}>
         <Text style={styles.body}>{l.sound}</Text>
       </View>
+
+      <Text style={[s.sectionTitle, styles.gapTop]}>Nachzeichnen</Text>
+      <TraceCanvas glyph={l.glyph} onDrawingChange={setDrawing} />
+      <Text style={s.sectionFooter}>Mit dem Finger nachfahren – Schreiben prägt die Form besser ein als nur Ansehen.</Text>
 
       <Text style={[s.sectionTitle, styles.gapTop]}>Eselsbrücke</Text>
       <View style={[s.card, styles.pad, { gap: 12 }]}>
